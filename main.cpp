@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <filesystem>
 #include <array>
 #include <unordered_set>
 #include <string_view>
@@ -90,6 +92,20 @@ enum class Orientation {
     Flipped180,
     Flipped270
 };
+
+std::string toString(Orientation o) {
+    switch (o) {
+        case Orientation::Normal0: return "Normal0";
+        case Orientation::Normal90: return "Normal90";
+        case Orientation::Normal180: return "Normal180";
+        case Orientation::Normal270: return "Normal270";
+        case Orientation::Flipped0: return "Flipped0";
+        case Orientation::Flipped90: return "Flipped90";
+        case Orientation::Flipped180: return "Flipped180";
+        case Orientation::Flipped270: return "Flipped270";
+    }
+    return "Unknown";
+}
 
 struct Tetronimo {
     std::string_view name;
@@ -216,6 +232,16 @@ struct Board {
         return false;
     }
 
+    std::vector<Point> getAllBlanks() const {
+        std::vector<Point> out;
+        for (auto val : coordinates) {
+            if (val.second == blank || val.second == 'X') {
+                out.push_back(val.first);
+            }
+        }
+        return out;
+    }
+
     void place_tet(const Tetronimo& tet, Orientation orientation, Point offset) {
         for (Point point : orient(tet, orientation, offset).coordinates) {
             auto p = findPosition(point);
@@ -262,16 +288,38 @@ struct LocatedTetronimo {
     std::string_view name;
     Orientation orientation;
     Point offset;
+
+    std::string toCSV() {
+        return toString(orientation) + ", " + std::to_string(offset.x) + ", " + std::to_string(offset.y);
+    }
 };
 
 struct Solution {
     std::array<LocatedTetronimo, 8> locations;
+    Board board;
+
+    std::string toCSVRow() {
+        std::string out = "";
+        auto blanks = board.getAllBlanks();
+        for (auto blank : blanks) {
+            out.append(std::to_string(blank.x) + "," + std::to_string(blank.y) + ",");
+        }
+        for (auto loc : locations) {
+            out.append(loc.toCSV());
+            out.append(", "); // TODO: fix trailing comma
+        }
+        return out;
+    }
 };
 
 void depthFirstSolver(Board& board, Solution& data, int depth, std::vector<Solution>& solutions) {
-    if (depth >= 8) { //DEBUG: should be 8
-        std::cout << "Found solution #" << size(solutions) << std::endl;
+    // if (size(solutions) > 10) { // debug limiter
+    //     return;
+    // }
+    if (depth >= 8) {
+        std::cout << "Found solution #" << size(solutions)+1 << std::endl;
         std::cout << board.toString() << std::endl;
+        data.board = board;
         solutions.push_back(data);
         return;
     }
@@ -297,34 +345,55 @@ void depthFirstSolver(Board& board, Solution& data, int depth, std::vector<Solut
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
+    if (argc > 3) {
+        std::cerr << "Usage: " << argv[0] << std::endl;
         std::cerr << "Usage: " << argv[0] << " month day" << std::endl;
         return 1;
     }
-    std::optional<Point> opt_month = getPointByDate(argv[1]);
-    std::optional<Point> opt_day   = getPointByDate(argv[2]);
-    if (!opt_month || ! opt_day) {
-        std::cout << "Couldn't parse the date! Aborting... " << std::endl;
-        return 1;
+
+    Board board;
+
+    if (argc == 3) {
+        std::optional<Point> opt_month = getPointByDate(argv[1]);
+        std::optional<Point> opt_day   = getPointByDate(argv[2]);
+        if (!opt_month || ! opt_day) {
+            std::cout << "Couldn't parse the date! Aborting... " << std::endl;
+            return 1;
+        }
+        Point month = opt_month.value();
+        Point day   = opt_day.value();
+        board = Board(month, day);
     }
-    Point month = opt_month.value();
-    Point day   = opt_day.value();
-
-    // for (size_t i=0; i < 7; i++) {
-    //     for (size_t j=0; j < 7; j++) {
-    //         //int ans = i ^ (j << 1);
-    //         int ans = i * 7 + j;
-    //         std::cout << "v0: " << i << ", v1: " << j << ", hash: " << ans << std::endl;
-    //     }
-    // }
-    
-
-    Board board(month, day);
-    std::cout << fitsOnBoard(tetronimos[0], board, Point(0,1), Orientation::Normal0) << std::endl;
 
     Solution data;
     std::vector<Solution> solutions;
     depthFirstSolver(board, data, 0, solutions);
+
+    std::cout << "Saving solutions" << std::endl;
+    {
+        std::filesystem::create_directories("output");
+
+        const std::string csv_filename = "output/data.csv";
+        std::ofstream outFile(csv_filename);
+        if (!outFile) {
+            std::cerr << "Error opening file: " << csv_filename << std::endl;
+            return 1;
+        }
+
+        outFile << "First blank x,First blank y,Second blank x,Second blank y," <<
+                        "Rectangle Orientation,Rectangle x,Rectangle y," << 
+                        "S-shape Orientation,S-shape x,S-shape y," <<
+                        "AngleBracket Orientation,AngleBracket x,AngleBracket y," <<
+                        "U-shape Orientation,U-shape x,U-shape y," <<
+                        "L-shape Orientation,L-shape x,L-shape y," <<
+                        "F-shape Orientation,F-shape x,F-shape y," <<
+                        "Snake Orientation,Snake x,Snake y," <<
+                        "Blob Orientation,Blob x,Blob y,blank\n"; // TODO: fix trailing comma due to "toCSVRow()"
+        for (auto solution : solutions) {
+            outFile << solution.toCSVRow() << "\n";
+        }
+    }
+    std::cout << "Finished saving" << std::endl;
 
     return 0;
 }
