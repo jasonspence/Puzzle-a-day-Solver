@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
+# Set release mode
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG")
+
 # Specify the compiler
 set(CMAKE_CXX_COMPILER "g++")
 

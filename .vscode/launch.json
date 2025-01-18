@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceRoot}/build/bin/Solver",
-            "args": ["Jan", "1"],
+            "args": ["Jan", "6"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

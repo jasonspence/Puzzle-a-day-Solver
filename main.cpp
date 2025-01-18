@@ -71,7 +71,7 @@ constexpr std::array<std::pair<std::string_view, Point>, 43> dateMap = {{
     {"31", Point(6,2)}
 }};
 
-constexpr std::optional<Point> findPoint(std::string_view date) {
+constexpr std::optional<Point> getPointByDate(std::string_view date) {
     for (const auto& [key, value] : dateMap) {
         if (key == date) {
             return value;
@@ -93,33 +93,35 @@ enum class Orientation {
 
 struct Tetronimo {
     std::string_view name;
+    char symbol;
     std::array<Point, 6> coordinates;
     int num_orientations;
     std::array<Orientation, 8> orientations;
 
     constexpr Tetronimo(
         std::string_view name,
+        char symbol,
         std::array<Point, 6> coordinates,
         int num_orientations,
         std::array<Orientation, 8> orientations
-    ) : name(name), coordinates(coordinates), num_orientations(num_orientations), orientations(orientations) {}
+    ) : name(name), symbol(symbol), coordinates(coordinates), num_orientations(num_orientations), orientations(orientations) {}
 
     Tetronimo(const Tetronimo& other) 
         : name(other.name), coordinates(other.coordinates), num_orientations(other.num_orientations), orientations(other.orientations) {}
 };
 
 constexpr std::array<Tetronimo, 8> tetronimos = {
-    Tetronimo("Rectangle",    {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,0}, Point{1,1}, Point{1,2}}, 2, {Orientation::Normal0, Orientation::Normal90}),
-    Tetronimo("S-shape",      {Point{0,0}, Point{0,1}, Point{1,1}, Point{2,1}, Point{2,2}}, 4, {Orientation::Normal0, Orientation::Normal90, Orientation::Flipped0, Orientation::Flipped90}),
-    Tetronimo("AngleBracket", {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,0}, Point{2,0}}, 4, {Orientation::Normal0, Orientation::Normal90, Orientation::Normal180, Orientation::Normal270}),
-    Tetronimo("U-shape",      {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,0}, Point{1,2}}, 4, {Orientation::Normal0, Orientation::Normal90, Orientation::Normal180, Orientation::Normal270}),
-    Tetronimo("L-shape",      {Point{0,0}, Point{0,1}, Point{0,2}, Point{0,3}, Point{1,0}}, 
+    Tetronimo("Rectangle",    'O', {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,0}, Point{1,1}, Point{1,2}}, 2, {Orientation::Normal0, Orientation::Normal90}),
+    Tetronimo("S-shape",      'S', {Point{0,0}, Point{0,1}, Point{1,1}, Point{2,1}, Point{2,2}}, 4, {Orientation::Normal0, Orientation::Normal90, Orientation::Flipped0, Orientation::Flipped90}),
+    Tetronimo("AngleBracket", 'A', {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,0}, Point{2,0}}, 4, {Orientation::Normal0, Orientation::Normal90, Orientation::Normal180, Orientation::Normal270}),
+    Tetronimo("U-shape",      'U', {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,0}, Point{1,2}}, 4, {Orientation::Normal0, Orientation::Normal90, Orientation::Normal180, Orientation::Normal270}),
+    Tetronimo("L-shape",      'L', {Point{0,0}, Point{0,1}, Point{0,2}, Point{0,3}, Point{1,0}}, 
                 8, {Orientation::Normal0, Orientation::Normal90, Orientation::Normal180, Orientation::Normal270, Orientation::Flipped0, Orientation::Flipped90, Orientation::Flipped180, Orientation::Flipped270}),
-    Tetronimo("F-shape",      {Point{0,0}, Point{0,1}, Point{0,2}, Point{0,3}, Point{1,1}}, 
+    Tetronimo("F-shape",      'F', {Point{0,0}, Point{0,1}, Point{0,2}, Point{0,3}, Point{1,1}}, 
                 8, {Orientation::Normal0, Orientation::Normal90, Orientation::Normal180, Orientation::Normal270, Orientation::Flipped0, Orientation::Flipped90, Orientation::Flipped180, Orientation::Flipped270}),
-    Tetronimo("Snake",        {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,2}, Point{1,3}}, 
+    Tetronimo("Snake",        'r', {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,2}, Point{1,3}}, 
                 8, {Orientation::Normal0, Orientation::Normal90, Orientation::Normal180, Orientation::Normal270, Orientation::Flipped0, Orientation::Flipped90, Orientation::Flipped180, Orientation::Flipped270}),
-    Tetronimo("Blob",         {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,0}, Point{1,1}}, 
+    Tetronimo("Blob",         'b', {Point{0,0}, Point{0,1}, Point{0,2}, Point{1,0}, Point{1,1}}, 
                 8, {Orientation::Normal0, Orientation::Normal90, Orientation::Normal180, Orientation::Normal270, Orientation::Flipped0, Orientation::Flipped90, Orientation::Flipped180, Orientation::Flipped270})
 };
 
@@ -161,44 +163,95 @@ Tetronimo orient(const Tetronimo& piece, Orientation orientation, Point offset) 
 }
 
 struct Board {
-    std::unordered_set<Point> coordinates;
+    std::array<std::pair<Point, char>, 43> coordinates;
+    static constexpr char blank = ' ';
 
     Board() {
-        // 7x7 grid
-        for (size_t i=0; i < 7; i++) {
-            for (size_t j=0; j < 7; j++) {
-                coordinates.insert(Point(i,j));
+        size_t pos = 0;
+        for (size_t i=0; i < 2; i++) {
+            for (size_t j=0; j < 6; j++) {
+                coordinates[pos] = {Point(i,j), blank};
+                pos++;
             }
         }
-        coordinates.erase(Point(0,6));
-        coordinates.erase(Point(1,6));
-        coordinates.erase(Point(6,3));
-        coordinates.erase(Point(6,4));
-        coordinates.erase(Point(6,5));
-        coordinates.erase(Point(6,6));
+        for (size_t i=2; i < 6; i++) {
+            for (size_t j=0; j < 7; j++) {
+                coordinates[pos] = {Point(i,j), blank};
+                pos++;
+            }
+        }
+        for (size_t i=6; i < 7; i++) {
+            for (size_t j=0; j < 3; j++) {
+                coordinates[pos] = {Point(i,j), blank};
+                pos++;
+            }
+        }
     }
 
     Board(Point month, Point day) : Board() {
-        coordinates.erase(month);
-        coordinates.erase(day);
+        auto m = findPosition(month);
+        if (m) {
+            coordinates[m.value()].second = 'X';
+        }
+        auto d = findPosition(day);
+        if (d) {
+            coordinates[d.value()].second = 'X';
+        }
+    }
+
+    constexpr std::optional<size_t> findPosition(Point p) const {
+        for (size_t i=0; i <= size(coordinates); i++) {
+            if (coordinates[i].first == p) {
+                return i;
+            }
+        }
+        return {};
+    }
+
+    bool isBlank(Point point) const {
+        auto p = findPosition(point);
+        if (p) {
+            return (coordinates[p.value()].second == blank);
+        }
+        return false;
     }
 
     void place_tet(const Tetronimo& tet, Orientation orientation, Point offset) {
         for (Point point : orient(tet, orientation, offset).coordinates) {
-            coordinates.erase(point);
+            auto p = findPosition(point);
+            if (p) {
+                coordinates[p.value()].second = tet.symbol;
+            }
         }
     }
     void remove_tet(const Tetronimo& tet, Orientation orientation, Point offset) {
         for (Point point : orient(tet, orientation, offset).coordinates) {
-            coordinates.insert(point);
+            auto p = findPosition(point);
+            if (p) {
+                coordinates[p.value()].second = blank;
+            }
         }
+    }
+
+    std::string toString() const {
+        std::string out = "________\n|";
+        int cur_row = 0;
+        for (auto& pos : coordinates) {
+            if (pos.first.x != cur_row) {
+                cur_row = pos.first.x;
+                out.append("|\n|");
+            }
+            out.push_back(pos.second);
+        }
+        out.append("_____\n___");
+        return out;
     }
 };
 
 bool fitsOnBoard(const Tetronimo& piece, const Board& board, Point location, Orientation orientation) {
     Tetronimo oriented = orient(piece, orientation, location);
     for (Point candidate : oriented.coordinates) {
-        if (auto iter = board.coordinates.find(candidate); iter == board.coordinates.end()) {
+        if (!board.isBlank(candidate)) {
             return false;
         }
     }
@@ -216,28 +269,28 @@ struct Solution {
 };
 
 void depthFirstSolver(Board& board, Solution& data, int depth, std::vector<Solution>& solutions) {
-    if (depth >= 2) { //DEBUG: should be 8
+    if (depth >= 8) { //DEBUG: should be 8
         std::cout << "Found solution #" << size(solutions) << std::endl;
+        std::cout << board.toString() << std::endl;
         solutions.push_back(data);
         return;
     }
-    std::cout << "Beginning solver depth " << depth << ", Tetronimo: " << tetronimos[depth].name << std::endl;
+    //std::cout << "Beginning solver depth " << depth << ", Tetronimo: " << tetronimos[depth].name << std::endl;
 
     // test the next tetronimo on all available locations
     for (size_t ori_ind=0; ori_ind < tetronimos[depth].num_orientations; ori_ind++) {
         Orientation orientation = tetronimos[depth].orientations[ori_ind];
-        std::cout << "  orientation: " << ori_ind << std::endl;
+        //std::cout << "  orientation: " << ori_ind << std::endl;
         Board copyForIterating(board);
-        for (Point offset : copyForIterating.coordinates) {
-            std::cout << "    offset: (" << offset.x << ", " << offset.y << ")" << std::endl;
-            if (fitsOnBoard(tetronimos[depth], board, offset, orientation)) {
-                std::cout << "    It FITS!" << std::endl;
+        for (auto& offset : board.coordinates) {
+            if (fitsOnBoard(tetronimos[depth], board, offset.first, orientation)) {
+                //std::cout << "    It FITS!" << " offset: (" << offset.first.x << ", " << offset.first.y << ")" << std::endl;
                 data.locations[depth].name = tetronimos[depth].name;
-                data.locations[depth].offset = offset;
+                data.locations[depth].offset = offset.first;
                 data.locations[depth].orientation = orientation;
-                board.place_tet(tetronimos[depth], orientation, offset);
+                board.place_tet(tetronimos[depth], orientation, offset.first);
                 depthFirstSolver(board, data, depth + 1, solutions);
-                board.remove_tet(tetronimos[depth], orientation, offset);
+                board.remove_tet(tetronimos[depth], orientation, offset.first);
             }
         }
     }
@@ -248,8 +301,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Usage: " << argv[0] << " month day" << std::endl;
         return 1;
     }
-    std::optional<Point> opt_month = findPoint(argv[1]);
-    std::optional<Point> opt_day   = findPoint(argv[2]);
+    std::optional<Point> opt_month = getPointByDate(argv[1]);
+    std::optional<Point> opt_day   = getPointByDate(argv[2]);
     if (!opt_month || ! opt_day) {
         std::cout << "Couldn't parse the date! Aborting... " << std::endl;
         return 1;
