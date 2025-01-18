@@ -178,6 +178,48 @@ Tetronimo orient(const Tetronimo& piece, Orientation orientation, Point offset) 
     return oriented;
 }
 
+std::array<Point, 6> doRotation(const std::array<Point, 6>& coordinates, Orientation orientation) {
+    std::array<Point, 6> out;
+    for (size_t i=0; i < size(coordinates); i++) {
+        switch (orientation) {
+            case Orientation::Normal0:
+                out[i] = coordinates[i];
+                break;
+            case Orientation::Normal90:
+                out[i] = {coordinates[i].y, -coordinates[i].x};
+                break;
+            case Orientation::Normal180:
+                out[i] = {-coordinates[i].x, -coordinates[i].y};
+                break;
+            case Orientation::Normal270:
+                out[i] = {-coordinates[i].y, coordinates[i].x};
+                break;
+            case Orientation::Flipped0:
+                out[i] = {-coordinates[i].x, coordinates[i].y};
+                break;
+            case Orientation::Flipped90:
+                out[i] = {coordinates[i].y, coordinates[i].x};
+                break;
+            case Orientation::Flipped180:
+                out[i] = {coordinates[i].x, -coordinates[i].y};
+                break;
+            case Orientation::Flipped270:
+                out[i] = {-coordinates[i].y, -coordinates[i].x};
+                break;
+        }
+    }
+    return out;
+}
+
+std::array<Point, 6> doTranslation(const std::array<Point, 6>& coordinates, Point offset) {
+    std::array<Point, 6> out;
+    for (size_t i=0; i < size(coordinates); i++) {
+        out[i] = {coordinates[i].x + offset.x, coordinates[i].y + offset.y};
+    }
+    return out;
+}
+
+
 struct Board {
     std::array<std::pair<Point, char>, 43> coordinates;
     static constexpr char blank = ' ';
@@ -242,16 +284,16 @@ struct Board {
         return out;
     }
 
-    void place_tet(const Tetronimo& tet, Orientation orientation, Point offset) {
-        for (Point point : orient(tet, orientation, offset).coordinates) {
+    void place_tet(const std::array<Point, 6>& tet, char symbol) {
+        for (Point point : tet) {
             auto p = findPosition(point);
             if (p) {
-                coordinates[p.value()].second = tet.symbol;
+                coordinates[p.value()].second = symbol;
             }
         }
     }
-    void remove_tet(const Tetronimo& tet, Orientation orientation, Point offset) {
-        for (Point point : orient(tet, orientation, offset).coordinates) {
+    void remove_tet(const std::array<Point, 6>& tet) {
+        for (Point point : tet) {
             auto p = findPosition(point);
             if (p) {
                 coordinates[p.value()].second = blank;
@@ -274,9 +316,8 @@ struct Board {
     }
 };
 
-bool fitsOnBoard(const Tetronimo& piece, const Board& board, Point location, Orientation orientation) {
-    Tetronimo oriented = orient(piece, orientation, location);
-    for (Point candidate : oriented.coordinates) {
+bool fitsOnBoard(const std::array<Point, 6>& piece, const Board& board) {
+    for (Point candidate : piece) {
         if (!board.isBlank(candidate)) {
             return false;
         }
@@ -325,20 +366,22 @@ void depthFirstSolver(Board& board, Solution& data, int depth, std::vector<Solut
     }
     //std::cout << "Beginning solver depth " << depth << ", Tetronimo: " << tetronimos[depth].name << std::endl;
 
-    // test the next tetronimo on all available locations
+    // test the next tetronimo on all locations
     for (size_t ori_ind=0; ori_ind < tetronimos[depth].num_orientations; ori_ind++) {
         Orientation orientation = tetronimos[depth].orientations[ori_ind];
+        std::array<Point, 6> tet = doRotation(tetronimos[depth].coordinates, orientation);
         //std::cout << "  orientation: " << ori_ind << std::endl;
-        Board copyForIterating(board);
         for (auto& offset : board.coordinates) {
-            if (fitsOnBoard(tetronimos[depth], board, offset.first, orientation)) {
+            // TODO: Test adding an early exit if the offset block is not free
+            std::array<Point, 6> orientedTetronimo = doTranslation(tet, offset.first);
+            if (fitsOnBoard(orientedTetronimo, board)) {
                 //std::cout << "    It FITS!" << " offset: (" << offset.first.x << ", " << offset.first.y << ")" << std::endl;
                 data.locations[depth].name = tetronimos[depth].name;
                 data.locations[depth].offset = offset.first;
                 data.locations[depth].orientation = orientation;
-                board.place_tet(tetronimos[depth], orientation, offset.first);
+                board.place_tet(orientedTetronimo, tetronimos[depth].symbol);
                 depthFirstSolver(board, data, depth + 1, solutions);
-                board.remove_tet(tetronimos[depth], orientation, offset.first);
+                board.remove_tet(orientedTetronimo);
             }
         }
     }
