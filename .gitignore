@@ -1,5 +1,11 @@
+# VS Code
+.vscode
+
 # Build
 build/*
+
+# Python
+venv
 
 # Prerequisites
 *.d
