@@ -45,12 +45,17 @@ Output data is stored in `output/data.csv`.
 
 From the workspace directory, run:
 
-On Windows:
-```
-venv\stats_env\Scripts\activate
-```
-
 On Linux:
 ```
-source venv/stats_env/bin/activate
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Run the Python analyser
+
+From the workspace directory, run:
+
+```
+python analysis.py
 ```
