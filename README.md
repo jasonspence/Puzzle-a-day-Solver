@@ -1,8 +1,12 @@
 # Puzzle-a-day-Solver
 
+## Overview
+
+This project enumerates and analyzes all solutions to a tetris-like game.
+
 ## Build the C++ Solver
 
-Debug build: 
+### Debug build: 
 ```
 mkdir build
 cd build
@@ -15,7 +19,7 @@ cmake -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Debug
 ninja -C build
 ```
 
-Release build:
+### Release build:
 ```
 mkdir build
 cd build
@@ -45,17 +49,38 @@ Output data is stored in `output/data.csv`.
 
 From the workspace directory, run:
 
-On Linux:
+### On Linux:
 ```
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Run the Python analyser
+### On Windows Bash:
+```
+python3 -m venv venv
+source venv/Scripts/activate
+pip install -r requirements.txt
+```
+
+## Run the Python analyzer
 
 From the workspace directory, run:
 
 ```
 python analysis.py
 ```
+
+
+
+## Ideas for future
+
+Make heatmaps for each piece
+
+Calculate distance between solutions - how many pieces need to move?
+
+Interactive game board with running stats
+- How many solutions are left given the already-placed pieces
+- What dates are still available
+- Is this a valid move for a particular date
+- Minimum number of pieces to move from the current solution to a solution for the next day
